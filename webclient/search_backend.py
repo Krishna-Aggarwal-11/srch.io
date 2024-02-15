@@ -95,4 +95,36 @@ def search_with_serper(query : str, key : str):
         data = payload,
         timeout = DEFAULT_SEARCH_ENGINE_TIMEOUT
     )
-    
+    if not response.ok:
+        logger.error(f"{response.status_code} {response.text}")
+        raise HTTPException(response.status_code, "search engine error.")
+    content = response.json()
+    try:
+        contexts = []
+        if json_content.get('knowledgeGraph'):
+            url = content['knowledgeGraph'].get("descriptionUrl") or content['knowledgeGraph'].get('website')
+            snippet = content['knowledgeGraph'].get('description')
+            if url and snippet:
+                contexts.append({
+                    "name" : content['knowledgeGraph'].get('title', "")
+                    "url" : url,
+                    "snippet" : snippet
+                })
+        if json_content.get('answerBox'):
+            url = content['answerBox'].get("url") 
+            snippet = content['answerBox'].get('snippet') or content['answerBox'].get('answer')
+            if url and snippet:
+                contexts.append({
+                    "name" : content['answerBox'].get('title', "")
+                    "url" : url,
+                    "snippet" : snippet
+                })
+
+        contexts += [
+            {"name": c["title"], "url" : c["link"], "snippet" : c.get["snippet", ""]}
+            for c in content["organic"]
+        ]
+        return contexts[:REFERENCES]
+        except KeyError:
+            logger.error(f'Error encountered : {content}')
+        return []
