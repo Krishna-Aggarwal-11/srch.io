@@ -78,7 +78,7 @@ def search_with_serper(query : str, key : str):
     """
     payload = json.dumps(
         {
-            "query" : query,
+            "q" : query,
             "num" : (
                 REFERENCES if REFERENCES % 10 == 0 else (REFERENCES // 10 + 1) * 10
             ),
