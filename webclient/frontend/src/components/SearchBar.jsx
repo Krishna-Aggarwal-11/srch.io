@@ -1,11 +1,21 @@
-import React from "react";
+import React , { useState }  from "react";
 import { FaArrowRight } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 
 const SearchBar = () => {
+  const [value , setValue] = useState('');
+  const Navigate = useNavigate();
+  const handleSumbit = (e) => {
+    e.preventDefault();
+    if(value) {
+      setValue('');
+      Navigate(`/search?q=${value}`);
+    };
+  }
   return (
     <div>
-      <form>
+      <form onSubmit={handleSumbit}>
         <label
           className="relative bg-white flex items-center justify-center border ring-8 ring-zinc-300/20 py-2 px-2 rounded-lg gap-2 focus-within:border-zinc-300"
           htmlFor="search-bar"
@@ -14,6 +24,9 @@ const SearchBar = () => {
             id="search-bar"
             placeholder="Ask me anything ..."
             className="px-2 pr-6 w-full rounded-md flex-1 outline-none bg-white"
+            type="text"
+            value={value}
+            onChange={(e)=>setValue(e.target.value)}
           />
           <button
             type="submit"
