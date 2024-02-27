@@ -217,7 +217,7 @@ def search_with_searchapi(query : str, key : str):
         logger.info(f"Error encountered : {json_content}")
         return []
 
-    class RAG(Photon):
+class RAG(Photon):
         extra_files = glob.glob("ui/**/*", recursive=True)
         deployment_template = {
             "resource_shape" : "cpu.small",
@@ -243,3 +243,103 @@ def search_with_searchapi(query : str, key : str):
         As we'll only be making a bunch of API calls we can keep this to a good amount
         '''
         max_concurrency  = 16
+
+        def local_client(self):
+            '''
+            If using OpenAI API
+            '''
+            import opeai
+            thread_local = threading.local()
+            try: 
+                return thread_local.client
+            except AttributeError:
+                thread_local.client = openai.OpenAI(
+                    base_url = f"https://{self.model}.lepton.run/api/v1/",
+                    api_key = os.environ.get("LEPTON_WORKSPACE_TOKEN")
+                    or WorkspaceInfoLocalRecord.get_current_workspace_token(),
+                    timeout = httpx.Timeout(connect=10, read=120, write=120, pool=10),
+                )
+                return thread_local.client
+        def init(self):
+            '''
+            Initialize Photon Configs
+            '''
+            leptonai.api.workspace.login()
+            self.backend = os.environ["BACKEND"].upper()
+            if self.backend == "LEPTON":
+                self.leptonsearch_client = Client(
+                    "https://search-api.lepton.run/",
+                    token = os.environ.get("LEPTON_WORKSPACE_TOKEN")
+                    or WorkspaceInfoLocalRecord.get_current_workspace_token(),
+                    stream = True,
+                    timeout = httpx.Timeout(connect=10, read=120, write=120, pool=10),
+                )
+            elif self.backend == "SERPER":
+                self.search_api_key = os.environ["SERPER_API_KEY"]
+                self.search_function = lambda query : search_with_serper(
+                    query,
+                    self.search_api_key
+                )
+            elif self.backend == "SEARCHAPI":
+                self.search_api_key = os.environ["SEARCHAPI_API_KEY"]
+                self.search_function = lambda query : search_with_searchapi(
+                    query,
+                    self.search_api_key
+                )
+            else:
+                raise RunTimeError("Backend must be LEPTON, SERPER or SEARCHAPI.")
+            self.model = os.environ["LLM MODEL"]
+            self.executor = concurrent.features.ThreadPoolExecutor(
+                # An exector to carry out async tasks, such as uploading to KV.
+                max_workers = self.handler_max_concurrency * 2
+            )
+            # Create the KV to store the search results.
+            logger.info("Creating KV. May take a while for the first time.")
+            self.kv = KV(
+                os.environ["KV_NAME"], create_if_not_exists=True, error_if_exists=False
+            )
+            self.should_do_related_questions = to_bool(os.environ['RELATED_QUESTIONS'])
+
+        def get_related_questions(self, query, contexts):
+            '''
+            Gets related questions based on the query and contexts
+            '''
+
+            def ask_related_questions(
+                questions: Annotated[
+                    List[str],
+                    [(
+                        "question",
+                        Annotated[
+                            str, "related question to the original question and context."
+                        ],
+                    )],
+                ]
+            ):
+            '''
+            ask further questions that are related to the input and output.
+            '''
+                pass
+            try:
+                response = self.local_client().chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {
+                            "role" : "system",
+                            "context" : _more_questions_prompt.format(
+                                context="\n\n".join([c["snippet"] for c in contexts])
+                            ),
+                        },
+                        {
+                            "role" : "user",
+                            "content" : "query",
+                        },
+                    ],
+                    tools = [{
+                        "type" : "function",
+                        "function" : tool.get_tools_spec(ask_related_questions),
+                    }],
+                    max_tokens = 512,
+                )
+                related = response.choices[0].message_tool_calls[0].function.arguments
+                
