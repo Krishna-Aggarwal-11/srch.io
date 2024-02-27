@@ -216,3 +216,30 @@ def search_with_searchapi(query : str, key : str):
     except KeyError:
         logger.info(f"Error encountered : {json_content}")
         return []
+
+    class RAG(Photon):
+        extra_files = glob.glob("ui/**/*", recursive=True)
+        deployment_template = {
+            "resource_shape" : "cpu.small",
+            "env" : {
+                # using lepton as backend
+                "BACKEND" : "LEPTON",
+                # specify the search cx if using google
+                "GOOGLE_SEARCH_CX" : "",
+                # specify the LLM used
+                "LLM_MODEL" : "mixtral-8x7B",
+                "KV_NAME" : "search-with-lepton",
+                "RELATED_QUESTIONS" : "true",
+                "LEPTON_ENABLE_AUTH_COOKIE" : "true",
+            },
+            # secrets such as api keys etc.
+            "secrets" : [
+                "SERPER_SEARCH_API_KEY" : "",
+                "SEARCHAPI_API_KEY" : "",
+            ],
+        } 
+
+        '''
+        As we'll only be making a bunch of API calls we can keep this to a good amount
+        '''
+        max_concurrency  = 16
