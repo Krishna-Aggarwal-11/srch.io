@@ -358,3 +358,24 @@ class RAG(Photon):
             """
             A function which yields the raw stream response
             """
+            yield json.dumps(contexts)
+            print("\n___LLM_RESPONSE___\n")
+            if not contexts :
+                yield(
+                    f"Could not get the context as the search engine did not return any answer for this query."
+                )
+            for chunk in llm_response:
+                if chunk.choices:
+                    yield chunk.choices[0].delta.content
+                    or ""
+            if related_questions_future : 
+                related_questions = related_questions_future.result()
+                try: 
+                    results = json.dumps(related_questions)
+                except Exception as e:
+                    logger.error(
+                        f"'Encountered error' {e}\n {traceback.format_exc}"
+                    )
+                    result = "[]"
+                yield "\n\n__RELATED_RESPONSES__\n\n"
+                yield result
