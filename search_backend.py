@@ -402,5 +402,100 @@ class RAG(Photon):
         generate_related_questions : Optional[bool] = True
     ) -> StreamingResponse:
     """
-        
+    Query the search engine and return the response
+
+    The query has the following fields:
+        - query : the user query
+        -search_uuid : a uuid used to store and retrieve each result. If
+                the uuid does not exist, generate and write to the kv. If the kv
+                fails, we generate regardless, in favor of availability. If the uuid
+                exists, return the stored result.
+        -generate_related_questions : if set to false, it will not generate related questions.
+                Otherwise, will depend upon the environment variable RELATED_QUESTIONS. Default : true.
     """
+    if search_uuid:
+        try: 
+            result = self.kv.get(search_uuid)
+
+            def str_to_generator(
+                result : str
+            ) -> Generator[str, None, None] : yield result
+
+            return StreamingResponse(str_to_generator(result)) 
+
+        except KeyError:
+            logger.info(
+                f"Key {search_uuid} not found."
+            )
+        except Exception as e:
+            logger.info(
+                f"Error response :{e}\n {traceback.format_exc}. Will try generating again."
+            )
+        else : 
+            raise HTTPException(status_code=400, detail="search_uuid must be provided.")
+
+        if self.backend == "LEPTON":
+            # delegating the work to the lepton search api
+            result = self.leptonsearch_client.response(
+                query=query, 
+                search_uuid=search_uuid,
+                get_related_questions=get_related_questions
+            )
+            return StreamingResponse(content=result, media_type="text\html")
+
+        query = query or _default_query
+        query = re.sub(r"\[/?INST\]", "", query)
+        contexts = self.search_function(query)
+
+        system_prompt = _rag_query_text.format(
+            context = "\n\n".join(
+                [f"[[citation:{i+1}]] {c["snippet"]}" for i, c in enumerate(contexts)]
+            )
+        )
+        try:
+            client = self.local_client()
+            llm_response = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role" : "system", "content" : "system_prompt"},
+                    {"role" : "user", "content" : query}
+                ]
+                max_tokens=256,
+                stop=stop_words, 
+                stream=True,
+                temperature=0.9
+            )
+            if self.should_do_related_questions and generate_related_questions:
+                # generating related questions as the answer is being generated
+                related_questions = self.executor.submit(
+                    self.get_related_questions, query, contexts
+                )
+            else:
+                related_questions_future = None
+        except Exception as e:
+            logger.info(
+                f"encountered error : {e}\n{traceback.format_exc}"
+            )
+            return HTMLResponse("Internal Server Error.", 503)
+        return StreamingResponse(
+            self.stream_and_upload_to_kv(
+                contexts, llm_response, related_questions_future, search_uuid
+            )
+        )
+
+    @Photon.handler(mount=True)
+    def ui(self):
+        return StaticFiles(
+            directory = "ui"
+        )
+    
+    @Photon.handler(method="GET", path="/")
+    def index(self) -> RedirectResponse:
+        """
+        Redirects the "/" to the ui page
+        """
+        return RedirectResponse(url="/ui/index.html")
+
+if __name__ == "__main__":
+    rag = RAG()
+    rag.launch()
