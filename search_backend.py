@@ -101,12 +101,12 @@ def search_with_serper(query : str, key : str):
     content = response.json()
     try:
         contexts = []
-        if json_content.get('knowledgeGraph'):
+        if content.get('knowledgeGraph'):
             url = content['knowledgeGraph'].get("descriptionUrl") or content['knowledgeGraph'].get('website')
             snippet = content['knowledgeGraph'].get('description')
             if url and snippet:
                 contexts.append({
-                    "name" : content['knowledgeGraph'].get('title', "")
+                    "name" : content['knowledgeGraph'].get('title', ""),
                     "url" : url,
                     "snippet" : snippet
                 })
@@ -115,7 +115,7 @@ def search_with_serper(query : str, key : str):
             snippet = content['answerBox'].get('snippet') or content['answerBox'].get('answer')
             if url and snippet:
                 contexts.append({
-                    "name" : content['answerBox'].get('title', "")
+                    "name" : content['answerBox'].get('title', ""),
                     "url" : url,
                     "snippet" : snippet
                 })
@@ -125,9 +125,9 @@ def search_with_serper(query : str, key : str):
             for c in content["organic"]
         ]
         return contexts[:REFERENCES]
-        except KeyError:
-            logger.error(f'Error encountered : {content}')
-        return []
+    except KeyError:
+        logger.error(f'Error encountered : {content}')
+    return []
 
 def search_with_searchapi(query : str, key : str):
     """
@@ -137,7 +137,9 @@ def search_with_searchapi(query : str, key : str):
         "q":query,
         "engine":"google",
         "num": (
-            REFERENCES if REFERENCES % 10 == 0 else (REFERENCES // 10 + 1) * 10
+            REFERENCES 
+            if REFERENCES % 10 == 0 
+            else (REFERENCES // 10 + 1) * 10
         ),
     }
     headers = {"Authorization": f"Bearer {key}", "Content-Type" : "application/json"}
@@ -233,9 +235,9 @@ class RAG(Photon):
                 "LEPTON_ENABLE_AUTH_COOKIE" : "true",
             },
             # secrets such as api keys etc.
-            "secrets" : [
-                "SERPER_SEARCH_API_KEY" : "",
-                "SEARCHAPI_API_KEY" : "",
+            "secret" : [
+                "SERPER_SEARCH_API_KEY",
+                "SEARCHAPI_API_KEY",
             ],
         } 
 
@@ -288,8 +290,8 @@ class RAG(Photon):
                 )
             else:
                 raise RunTimeError("Backend must be LEPTON, SERPER or SEARCHAPI.")
-            self.model = os.environ["LLM MODEL"]
-            self.executor = concurrent.features.ThreadPoolExecutor(
+            self.model = os.environ["LLM_MODEL"]
+            self.executor = concurrent.futures.ThreadPoolExecutor(
                 # An exector to carry out async tasks, such as uploading to KV.
                 max_workers = self.handler_max_concurrency * 2
             )
@@ -304,7 +306,6 @@ class RAG(Photon):
             '''
             Gets related questions based on the query and contexts
             '''
-
             def ask_related_questions(
                 questions: Annotated[
                     List[str],
@@ -316,9 +317,9 @@ class RAG(Photon):
                     )],
                 ]
             ):
-            '''
-            ask further questions that are related to the input and output.
-            '''
+                '''
+                ask further questions that are related to the input and output.
+                '''
                 pass
             try:
                 response = self.local_client().chat.completions.create(
@@ -366,8 +367,7 @@ class RAG(Photon):
                 )
             for chunk in llm_response:
                 if chunk.choices:
-                    yield chunk.choices[0].delta.content
-                    or ""
+                    yield chunk.choices[0].delta.content or ""
             if related_questions_future : 
                 related_questions = related_questions_future.result()
                 try: 
@@ -383,118 +383,121 @@ class RAG(Photon):
         def stream_and_upload_to_kv(
             self, contexts, llm_response, related_questions_future, search_uid
         ) -> Generator[str, None, None]:
-        """
-        Streams the result and uploads to KV
-        """
-        all_yielded_responses = []
-        for result in self._raw_stream_response(
-            contexts, llm_response, related_questions_future
-        ):
-            all_yielded_responses.append(result)
-            yield result
-        _ = self.executor.submit(self.kv.put, search_uuid="".join(all_yielded_responses))
+            """
+            Streams the result and uploads to KV
+            """
+            all_yielded_responses = []
+            for result in self._raw_stream_response(
+                contexts, llm_response, related_questions_future
+            ):
+                all_yielded_responses.append(result)
+                yield result
+            _ = self.executor.submit(self.kv.put, search_uuid="".join(all_yielded_responses))
 
-    @Photon.handler(method="POST", path="/query")
-    def query_function(
-        self,
-        query : str,
-        search_uuid : str,
-        generate_related_questions : Optional[bool] = True
-    ) -> StreamingResponse:
-    """
-    Query the search engine and return the response
+        @Photon.handler(method="POST", path="/query")
+        def query_function(
+            self,
+            query : str,
+            search_uuid : str,
+            generate_related_questions : Optional[bool] = True
+        ) -> StreamingResponse:
+            """
+            Query the search engine and return the response
 
-    The query has the following fields:
-        - query : the user query
-        -search_uuid : a uuid used to store and retrieve each result. If
-                the uuid does not exist, generate and write to the kv. If the kv
-                fails, we generate regardless, in favor of availability. If the uuid
-                exists, return the stored result.
-        -generate_related_questions : if set to false, it will not generate related questions.
-                Otherwise, will depend upon the environment variable RELATED_QUESTIONS. Default : true.
-    """
-    if search_uuid:
-        try: 
-            result = self.kv.get(search_uuid)
+            The query has the following fields:
+                - query : the user query
+                -search_uuid : a uuid used to store and retrieve each result. If
+                        the uuid does not exist, generate and write to the kv. If the kv
+                        fails, we generate regardless, in favor of availability. If the uuid
+                        exists, return the stored result.
+                -generate_related_questions : if set to false, it will not generate related questions.
+                        Otherwise, will depend upon the environment variable RELATED_QUESTIONS. Default : true.
+            """
+            if search_uuid:
+                try: 
+                    result = self.kv.get(search_uuid)
 
-            def str_to_generator(
-                result : str
-            ) -> Generator[str, None, None] : yield result
+                    def str_to_generator(
+                        result : str
+                    ) -> Generator[str, None, None] : yield result
 
-            return StreamingResponse(str_to_generator(result)) 
+                    return StreamingResponse(str_to_generator(result)) 
 
-        except KeyError:
-            logger.info(
-                f"Key {search_uuid} not found."
-            )
-        except Exception as e:
-            logger.info(
-                f"Error response :{e}\n {traceback.format_exc}. Will try generating again."
-            )
-        else : 
-            raise HTTPException(status_code=400, detail="search_uuid must be provided.")
+                except KeyError:
+                    logger.info(
+                        f"Key {search_uuid} not found."
+                    )
+                except Exception as e:
+                    logger.info(
+                        f"Error response :{e}\n {traceback.format_exc}. Will try generating again."
+                    )
+                else : 
+                    raise HTTPException(status_code=400, detail="search_uuid must be provided.")
 
-        if self.backend == "LEPTON":
-            # delegating the work to the lepton search api
-            result = self.leptonsearch_client.response(
-                query=query, 
-                search_uuid=search_uuid,
-                get_related_questions=get_related_questions
-            )
-            return StreamingResponse(content=result, media_type="text\html")
+                if self.backend == "LEPTON":
+                    # delegating the work to the lepton search api
+                    result = self.leptonsearch_client.response(
+                        query=query, 
+                        search_uuid=search_uuid,
+                        get_related_questions=get_related_questions
+                    )
+                    return StreamingResponse(content=result, media_type="text\html")
 
-        query = query or _default_query
-        query = re.sub(r"\[/?INST\]", "", query)
-        contexts = self.search_function(query)
+                query = query or _default_query
+                query = re.sub(r"\[/?INST\]", "", query)
+                contexts = self.search_function(query)
 
-        system_prompt = _rag_query_text.format(
-            context = "\n\n".join(
-                [f"[[citation:{i+1}]] {c["snippet"]}" for i, c in enumerate(contexts)]
-            )
-        )
-        try:
-            client = self.local_client()
-            llm_response = client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role" : "system", "content" : "system_prompt"},
-                    {"role" : "user", "content" : query}
-                ]
-                max_tokens=256,
-                stop=stop_words, 
-                stream=True,
-                temperature=0.9
-            )
-            if self.should_do_related_questions and generate_related_questions:
-                # generating related questions as the answer is being generated
-                related_questions = self.executor.submit(
-                    self.get_related_questions, query, contexts
+                system_prompt = _rag_query_text.format(
+                    context = "\n\n".join(
+                        [f"[[citation:{i+1}]] {c['snippet']}" for i, c in enumerate(contexts)]
+                    )
                 )
-            else:
-                related_questions_future = None
-        except Exception as e:
-            logger.info(
-                f"encountered error : {e}\n{traceback.format_exc}"
-            )
-            return HTMLResponse("Internal Server Error.", 503)
-        return StreamingResponse(
-            self.stream_and_upload_to_kv(
-                contexts, llm_response, related_questions_future, search_uuid
-            )
-        )
+                try:
+                    client = self.local_client()
+                    llm_response = client.chat.completions.create(
+                        model=self.model,
+                        messages=[
+                            {"role" : "system", "content" : "system_prompt"},
+                            {"role" : "user", "content" : query},
+                        ],
+                        max_tokens=256,
+                        stop=stop_words, 
+                        stream=True,
+                        temperature=0.9
+                    )
+                    if self.should_do_related_questions and generate_related_questions:
+                        # generating related questions as the answer is being generated
+                        related_questions = self.executor.submit(
+                            self.get_related_questions, query, contexts
+                        )
+                    else:
+                        related_questions_future = None
+                except Exception as e:
+                    logger.info(
+                        f"encountered error : {e}\n{traceback.format_exc}"
+                    )
+                    return HTMLResponse("Internal Server Error.", 503)
+                return StreamingResponse(
+                    self.stream_and_upload_to_kv(
+                        contexts, llm_response, related_questions_future, search_uuid
+                    )
+                )
 
-    @Photon.handler(mount=True)
-    def ui(self):
-        return StaticFiles(
-            directory = "ui"
-        )
+        @Photon.handler(mount=True)
+        def ui(self):
+            """
+                ui : it is the directory containing the index.html and other components
+            """
+            return StaticFiles(
+                directory = "ui"  
+            )
     
-    @Photon.handler(method="GET", path="/")
-    def index(self) -> RedirectResponse:
-        """
-        Redirects the "/" to the ui page
-        """
-        return RedirectResponse(url="/ui/index.html")
+        @Photon.handler(method="GET", path="/")
+        def index(self) -> RedirectResponse:
+            """
+            Redirects the "/" to the ui page
+            """
+            return RedirectResponse(url="/ui/index.html")
 
 if __name__ == "__main__":
     rag = RAG()
