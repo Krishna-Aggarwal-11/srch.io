@@ -342,4 +342,19 @@ class RAG(Photon):
                     max_tokens = 512,
                 )
                 related = response.choices[0].message_tool_calls[0].function.arguments
-                
+                if isinstance(related, str):
+                    related = json.loads(related)
+                logger.trace(f"Related questions {related}")
+                return related['questions'][:5]
+            except Exception as e:
+                logger.error(
+                    "encountered an error while generating related responses:"
+                    f" {e}\n {traceback.format_exc()}"
+                )
+                return []
+        def _raw_stream_response(
+            self, contexts, llm_response, related_questions_future
+        ) -> Generator[str, None, None]:
+            """
+            A function which yields the raw stream response
+            """
