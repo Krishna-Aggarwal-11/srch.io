@@ -379,3 +379,28 @@ class RAG(Photon):
                     result = "[]"
                 yield "\n\n__RELATED_RESPONSES__\n\n"
                 yield result
+
+        def stream_and_upload_to_kv(
+            self, contexts, llm_response, related_questions_future, search_uid
+        ) -> Generator[str, None, None]:
+        """
+        Streams the result and uploads to KV
+        """
+        all_yielded_responses = []
+        for result in self._raw_stream_response(
+            contexts, llm_response, related_questions_future
+        ):
+            all_yielded_responses.append(result)
+            yield result
+        _ = self.executor.submit(self.kv.put, search_uuid="".join(all_yielded_responses))
+
+    @Photon.handler(method="POST", path="/query")
+    def query_function(
+        self,
+        query : str,
+        search_uuid : str,
+        generate_related_questions : Optional[bool] = True
+    ) -> StreamingResponse:
+    """
+        
+    """
