@@ -489,15 +489,15 @@ class RAG(Photon):
                 ui : it is the directory containing the index.html and other components
             """
             return StaticFiles(
-                directory = "ui"  
+                directory = "./frontend"  
             )
     
         @Photon.handler(method="GET", path="/")
         def index(self) -> RedirectResponse:
             """
-            Redirects the "/" to the ui page
+                Redirects the "/" to the ui page
             """
-            return RedirectResponse(url="/ui/index.html")
+            return RedirectResponse(url="/frontend/index.html")
 
 if __name__ == "__main__":
     rag = RAG()
