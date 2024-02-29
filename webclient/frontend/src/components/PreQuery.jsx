@@ -3,7 +3,7 @@ import {nanoid} from "nanoid";
 import { useMemo } from "react";
 import { getSearchUrl } from "../utils/getSearchUrl.js";
 
-export const PresetQuery = ({ query }) => {
+export const PreQuery = ({ query }) => {
   const rid = useMemo(() => nanoid(), [query]);
 
   return (

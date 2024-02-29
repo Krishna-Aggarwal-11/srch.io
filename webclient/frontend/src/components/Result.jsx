@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import Answer from "./Answer.jsx";
 import { LuAnnoyed } from "react-icons/lu";
+import RelatedQuestion from "./RelatedQuestion";
+import Sources from "./Sources";
 
 const Result = ({ query, rid }) => {
   const [sources, setSources] = useState([]);
@@ -22,9 +24,9 @@ const Result = ({ query, rid }) => {
   },[query]);
   return (
     <div className="flex flex-col gap-8">
-      <Answer></Answer>
-      {/* <Sources sources={sources}></Sources>
-      <Relates relates={relates}></Relates> */}
+      <Answer markdown={markdown} sources={sources}></Answer>
+      <Sources sources={sources}></Sources>
+      <RelatedQuestion relates={relates}></RelatedQuestion>
       {error && (
         <div className="absolute inset-4 flex items-center justify-center bg-white/40 backdrop-blur-sm">
           <div className="p-4 bg-white shadow-2xl rounded text-blue-500 font-medium flex gap-4">
