@@ -1,10 +1,12 @@
 import React from 'react'
 import { FcRefresh } from "react-icons/fc";
 import { useNavigate } from "react-router-dom";
+import { getSearchUrl } from './../util/getSearchUrl.js';
+import { nanoid } from 'nanoid';
 const Title = ({query}) => {
     const Navigate = useNavigate(); 
     const handleRewrite = () => {
-        Navigate(`/search?q=${query}`);
+        Navigate(getSearchUrl(encodeURIComponent(query),nanoid()));
     }
   return (
     <div className="flex items-center pb-4 mb-6 border-b gap-4">
