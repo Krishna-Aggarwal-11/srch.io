@@ -1,6 +1,7 @@
 import React , { useState }  from "react";
 import { FaArrowRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { getSearchUrl } from './../util/getSearchUrl.js';
 
 
 const SearchBar = () => {
@@ -10,7 +11,7 @@ const SearchBar = () => {
     e.preventDefault();
     if(value) {
       setValue('');
-      Navigate(`/search?q=${value}`);
+      Navigate(getSearchUrl(encodeURIComponent(value),nanoid()));
     };
   }
   return (
