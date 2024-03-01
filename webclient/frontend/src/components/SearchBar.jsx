@@ -2,7 +2,7 @@ import React , { useState }  from "react";
 import { FaArrowRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { getSearchUrl } from './../util/getSearchUrl.js';
-
+import { nanoid } from 'nanoid';
 
 const SearchBar = () => {
   const [value , setValue] = useState('');
