@@ -3,6 +3,7 @@ import Answer from "./Answer.jsx";
 import { LuAnnoyed } from "react-icons/lu";
 import RelatedQuestion from "./RelatedQuestion";
 import Sources from "./Sources";
+import {parseStreaming} from "../util/parseStream.js"
 
 const Result = ({ query, rid }) => {
   const [sources, setSources] = useState([]);

@@ -1,6 +1,6 @@
 import React from 'react'
 import Wrapper from './Wrapper';
-import PreQuery from './PreQuery';
+import PreQuery from './PreQuery.jsx';
 import { MdMessage } from "react-icons/md";
 const RelatedQuestion = ({relates}) => {
   return (

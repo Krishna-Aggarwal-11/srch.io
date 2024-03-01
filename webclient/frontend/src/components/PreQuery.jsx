@@ -1,9 +1,9 @@
 import {Link} from "react-router-dom";
 import {nanoid} from "nanoid";
 import { useMemo } from "react";
-import { getSearchUrl } from "../utils/getSearchUrl.js";
+import { getSearchUrl } from "../util/getSearchUrl.js";
 
-export const PreQuery = ({ query }) => {
+const PreQuery = ({ query }) => {
   const rid = useMemo(() => nanoid(), [query]);
 
   return (
@@ -17,3 +17,5 @@ export const PreQuery = ({ query }) => {
     </Link>
   );
 };
+
+export default PreQuery;
