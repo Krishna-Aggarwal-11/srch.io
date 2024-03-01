@@ -16,22 +16,28 @@ export const parseStreaming = async (
   let uint8Array = new Uint8Array();
   let chunks = "";
   let sourcesEmitted = false;
-  const response = await fetch(`/query`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "*./*",
+  const response = await fetch('/query',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json'
     },
-    signal: controller.signal,
-    body: JSON.stringify({
-      query,
-      search_uuid,
-    }),
-  });
-  if (response.status !== 200) {
+    body:JSON.stringify({
+      query:query,
+      search_uuid:search_uuid
+    })
+  })
+  if (!response.ok){
+    console.log(response)
     onError?.(response.status);
     return;
   }
+
+
+  // if (response.status !== 200) {
+  //   console.log(response)
+  //   onError?.(response.status);
+  //   return;
+  // }
   const markdownParse = (text) => {
     onMarkdown(
       text
