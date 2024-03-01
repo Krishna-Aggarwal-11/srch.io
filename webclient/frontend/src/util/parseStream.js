@@ -21,6 +21,7 @@ export const parseStreaming = async (
     headers:{
       'Content-Type':'application/json'
     },
+    signal : controller?.signal,
     body:JSON.stringify({
       query:query,
       search_uuid:search_uuid
@@ -38,6 +39,7 @@ export const parseStreaming = async (
   //   onError?.(response.status);
   //   return;
   // }
+
   const markdownParse = (text) => {
     onMarkdown(
       text
@@ -52,11 +54,14 @@ export const parseStreaming = async (
     (chunk) => {
       uint8Array = new Uint8Array([...uint8Array, ...chunk]);
       chunks = decoder.decode(uint8Array, { stream: true });
+      
       if (chunks.includes(LLM_SPLIT)) {
         const [sources, rest] = chunks.split(LLM_SPLIT);
+
         if (!sourcesEmitted) {
           try {
-            onSources(JSON.parse(sources));
+            const obj  = JSON.parse(sources);
+            onSources(obj);
           } catch (e) {
             onSources([]);
           }

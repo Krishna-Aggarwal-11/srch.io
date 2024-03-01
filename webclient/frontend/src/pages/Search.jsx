@@ -8,7 +8,6 @@ const Search = () => {
   const [searchParams,setSearchParams] = useSearchParams();
   const query = decodeURIComponent(searchParams.get("q") || "");
   const rid = decodeURIComponent(searchParams.get("rid") || "");
-  console.log(query ,rid)
   return (
     <div className="absolute inset-0 bg-[url('/ui/bg.svg')]">
     <div className="mx-auto max-w-3xl absolute inset-4 md:inset-8 bg-white">

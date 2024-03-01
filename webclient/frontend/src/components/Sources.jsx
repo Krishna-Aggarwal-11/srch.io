@@ -3,8 +3,8 @@ import Wrapper from "./Wrapper";
 import Skeleton from "./Skeleton.jsx";
 import { FaBookReader } from "react-icons/fa";
 
-const SourceItem = ({ sources, index }) => {
-  const { id, name, url } = sources;
+const SourceItem = ({ source, index }) => {
+  const { id, name, url } = source;
   const domain = new URL(url).hostname;
 
   return (
@@ -35,14 +35,18 @@ const SourceItem = ({ sources, index }) => {
 };
 
 export const Sources = ({ sources }) => {
+  
   return <Wrapper 
-    title={<FaBookReader/>}     
+    title={<>
+    <FaBookReader/> Sources
+    </>
+  }     
     content={
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {sources.length > 0 ? (
             sources.map((item, index) => (
               <SourceItem
-                key={item.id}
+                key={index}
                 index={index}
                 source={item}
               ></SourceItem>

@@ -23,6 +23,8 @@ const Result = ({ query, rid }) => {
     );
     return () => controller.abort();
   },[query]);
+
+  console.log();
   return (
     <div className="flex flex-col gap-8">
       <Answer markdown={markdown} sources={sources}></Answer>
