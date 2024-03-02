@@ -3,6 +3,7 @@ import Wrapper from "./Wrapper";
 import Skeleton from "./Skeleton";
 import { FaBookReader } from "react-icons/fa";
 import Markdown from "react-markdown";
+import { Popover, PopoverTrigger, PopoverContent } from "./Popover.jsx";
 
 const Answer = ({ markdown, sources }) => {
   return (
@@ -23,13 +24,17 @@ const Answer = ({ markdown, sources }) => {
                   if (!source) return <></>;
                   return (
                     <span className="inline-block w-4">
+                      <Popover>
+                        <PopoverTrigger asChild>
                           <span
                             title={source.name}
                             className="inline-block cursor-pointer transform scale-[60%] no-underline font-medium bg-zinc-300 hover:bg-zinc-400 w-6 text-center h-6 rounded-full origin-top-left"
                           >
                             {props.href}
                           </span>
-                        <div
+                        </PopoverTrigger>
+                        <PopoverContent
+                          align={"start"}
                           className="max-w-screen-md flex flex-col gap-2 bg-white shadow-transparent ring-zinc-50 ring-4 text-xs"
                         >
                           <div className="text-ellipsis overflow-hidden whitespace-nowrap font-medium">
@@ -69,13 +74,16 @@ const Answer = ({ markdown, sources }) => {
                               <img
                                 className="h-3 w-3"
                                 alt={source.url}
-                                src={`https://www.google.com/s2/favicons?domain=${source.url}&sz=${16}`}
+                                src={`https://www.google.com/s2/favicons?domain=${
+                                  source.url
+                                }&sz=${16}`}
                               />
                             </div>
                           </div>
-                        </div>
+                        </PopoverContent>
+                      </Popover>
                     </span>
-                  )
+                  );
                 },
               }}
             >
