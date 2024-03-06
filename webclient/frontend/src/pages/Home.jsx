@@ -9,6 +9,7 @@ const Home = () => {
       <div className="relative flex flex-col gap-8 px-4 -mt-24">
         <Header></Header>
         <SearchBar></SearchBar>
+        
         <div className="flex gap-2 flex-wrap justify-center">
         </div>
         <Footer></Footer>
