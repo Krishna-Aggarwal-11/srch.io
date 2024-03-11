@@ -7,7 +7,7 @@
 - First install the node modules
  ```Python
     # Go into the directory you want to install
-    mkdir client
+    mkdir <YOUR_DIRECTORY>
     git clone https://github.com/nerdlab53/serch.io.git
     cd serch.io
     !pip install -r requirements.txt
