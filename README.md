@@ -1,5 +1,5 @@
-# webclient
-
+# serch.io webclient
+![alt text](assets/logo.png)
 - A RAG based client for web surfing!
 - Built with the help of LeptonAI, Python and JavaScript!
 
