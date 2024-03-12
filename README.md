@@ -1,5 +1,7 @@
 # serch.io webclient
-![project logo](assets/logo.png)
+<p align="center" width="100%">
+    <img width="33%" src="assets/logo.png">
+</p>
 - A RAG based client for web surfing!
 - Built with the help of LeptonAI, Python and JavaScript!
 
